@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.tcu.cs.hogwartsartifactsonline.artifact.dto.ArtifactDto;
 import edu.tcu.cs.hogwartsartifactsonline.system.Result;
 import edu.tcu.cs.hogwartsartifactsonline.system.StatusCode;
+import edu.tcu.cs.hogwartsartifactsonline.system.exception.ObjectNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -57,6 +59,9 @@ class ArtifactControllerTest {
     ObjectMapper objectMapper;
 
     List<Artifact> artifacts;
+
+    @Value("${api.endpoint.base-url}")
+    String baseUrl;
 
     @BeforeEach
     void setUp() {
@@ -118,7 +123,7 @@ class ArtifactControllerTest {
          * unlike testing a service object in a controller test we don't have to explicitly invoke the handler methods
          * because we have mockMVC which performs a fake HTTP request because we have the spring context.
          */
-        this.mockMvc.perform(get("/api/v1/artifacts/1250808601744904191").accept(MediaType.APPLICATION_JSON))
+        this.mockMvc.perform(get(String.format("%s/artifacts/1250808601744904191", this.baseUrl)).accept(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.flag").value(true))
                 .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS.getHttpStatusCodeValue()))
                 .andExpect(jsonPath("$.message").value("Find One Success"))
@@ -130,14 +135,14 @@ class ArtifactControllerTest {
     @Test
     void testFindArtifactByIdNotFound() throws Exception{
         // Given
-        given(this.artifactService.findById("1250808601744904191")).willThrow(new ArtifactNotFoundException("1250808601744904191"));
+        given(this.artifactService.findById("1250808601744904191")).willThrow(new ObjectNotFoundException("artifact", "1250808601744904191"));
 
         // When and Then
         /*
          * unlike testing a service object in a controller test we don't have to explicitly invoke the handler methods
          * because we have mockMVC which performs a fake HTTP request because we have the spring context.
          */
-        this.mockMvc.perform(get("/api/v1/artifacts/1250808601744904191").accept(MediaType.APPLICATION_JSON))
+        this.mockMvc.perform(get(String.format("%s/artifacts/1250808601744904191", this.baseUrl)).accept(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.flag").value(false))
                 .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND.getHttpStatusCodeValue()))
                 .andExpect(jsonPath("$.message").value("Could not find artifact with Id 1250808601744904191 :("))
@@ -153,7 +158,7 @@ class ArtifactControllerTest {
         given(this.artifactService.findAll()).willReturn(this.artifacts);
 
         // When and Then
-        this.mockMvc.perform(get("/api/v1/artifacts").accept(MediaType.APPLICATION_JSON))
+        this.mockMvc.perform(get(String.format("%s/artifacts", this.baseUrl)).accept(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.flag").value(true))
                 .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS.getHttpStatusCodeValue()))
                 .andExpect(jsonPath("$.message").value("Find All Success"))
@@ -190,7 +195,7 @@ class ArtifactControllerTest {
         given(this.artifactService.save(Mockito.any(Artifact.class))).willReturn(savedArtifact);
 
         // When and Then
-        this.mockMvc.perform(post("/api/v1/artifacts").
+        this.mockMvc.perform(post(String.format("%s/artifacts", this.baseUrl)).
                         contentType(MediaType.APPLICATION_JSON)
                         .content(json)
                         .accept(MediaType.APPLICATION_JSON))
@@ -224,7 +229,7 @@ class ArtifactControllerTest {
         given(this.artifactService.update(eq("12508086017449041972"), Mockito.any(Artifact.class))).willReturn(updatedArtifact);
 
         // When and Then
-        this.mockMvc.perform(put("/api/v1/artifacts/12508086017449041972").
+        this.mockMvc.perform(put(String.format("%s/artifacts/12508086017449041972", this.baseUrl)).
                         contentType(MediaType.APPLICATION_JSON)
                         .content(json)
                         .accept(MediaType.APPLICATION_JSON))
@@ -248,10 +253,11 @@ class ArtifactControllerTest {
 
         String json = this.objectMapper.writeValueAsString(artifactDto); // serialized json.
 
-        given(this.artifactService.update(eq("12508086017449041972"), Mockito.any(Artifact.class))).willThrow(new ArtifactNotFoundException("12508086017449041972"));
+        given(this.artifactService.update(eq("12508086017449041972"), Mockito.any(Artifact.class)))
+                .willThrow(new ObjectNotFoundException("artifact", "12508086017449041972"));
 
         // When and Then
-        this.mockMvc.perform(put("/api/v1/artifacts/12508086017449041972").
+        this.mockMvc.perform(put(String.format("%s/artifacts/12508086017449041972", this.baseUrl)).
                         contentType(MediaType.APPLICATION_JSON)
                         .content(json)
                         .accept(MediaType.APPLICATION_JSON))
@@ -267,7 +273,7 @@ class ArtifactControllerTest {
         doNothing().when(this.artifactService).delete("12508086017449041971");
 
         // When and Then
-        this.mockMvc.perform(delete("/api/v1/artifacts/12508086017449041971")
+        this.mockMvc.perform(delete(String.format("%s/artifacts/12508086017449041971", this.baseUrl))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.flag").value(true))
                 .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS.getHttpStatusCodeValue()))
@@ -279,10 +285,11 @@ class ArtifactControllerTest {
     void testDeleteArtifactErrorWithNonExistentId() throws Exception {
         // Given
         // when service.delete gets called throw the below exception.
-        doThrow(new ArtifactNotFoundException("12508086017449041971")).when(this.artifactService).delete("12508086017449041971");
+        doThrow(new ObjectNotFoundException("artifact", "12508086017449041971"))
+                .when(this.artifactService).delete("12508086017449041971");
 
         // When and Then
-        this.mockMvc.perform(delete("/api/v1/artifacts/12508086017449041971")
+        this.mockMvc.perform(delete(String.format("%s/artifacts/12508086017449041971", this.baseUrl))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.flag").value(false))
                 .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND.getHttpStatusCodeValue()))
