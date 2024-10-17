@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -61,6 +62,7 @@ class WizardControllerTest {
 
     private List<Wizard> wizards;
 
+    private List<Artifact> artifacts;
     @BeforeEach
     void setUp() {
 
@@ -119,7 +121,7 @@ class WizardControllerTest {
         // mock adding artifacts.
         wizard.addArtifact(a1);
         wizard.addArtifact(a2);
-//        artifacts = new ArrayList<>(Arrays.asList(a1, a2, a3, a4, a5, a6));
+        artifacts = new ArrayList<>(Arrays.asList(a1, a2, a3, a4, a5, a6));
     }
 
     @AfterEach
@@ -313,6 +315,60 @@ class WizardControllerTest {
                 .andExpect(jsonPath("$.flag").value(false))
                 .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND.getHttpStatusCodeValue()))
                 .andExpect(jsonPath("$.message").value("Could not find wizard with Id 9 :("))
+                .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
+    void testAssignArtifactSuccess() throws Exception {
+        Wizard wizard = this.wizards.get(0);
+        Artifact artifact = this.artifacts.get(0);
+        // Given
+        // Mock tbe behavior of the service method's assignArtifact
+        doNothing().when(this.wizardService).assignArtifact(wizard.getId(), artifact.getId());
+
+
+        // Note: The client doesn't send any json in the request body.
+        this.mockMvc.perform(put(String.format("%s/wizards/%s/artifacts/%s", this.baseUrl, wizard.getId(), artifact.getId()))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.flag").value(true))
+                .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS.getHttpStatusCodeValue()))
+                .andExpect(jsonPath("$.message").value("Artifact Assignment Success"))
+                .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
+    void testAssignArtifactErrorWithNonExistentWizardId() throws Exception {
+        Wizard wizard = this.wizards.get(0);
+        Artifact artifact = this.artifacts.get(0);
+        // Given
+        // Mock tbe behavior of the service method's assignArtifact
+        doThrow(new ObjectNotFoundException("wizard", 5)).when(this.wizardService).assignArtifact(5, artifact.getId());
+
+
+        // Note: The client doesn't send any json in the request body.
+        this.mockMvc.perform(put(String.format("%s/wizards/%s/artifacts/%s", this.baseUrl, 5, artifact.getId()))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.flag").value(false))
+                .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND.getHttpStatusCodeValue()))
+                .andExpect(jsonPath("$.message").value(String.format("Could not find wizard with Id %s :(", 5)))
+                .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
+    void testAssignArtifactErrorWithNonExistentArtifactId() throws Exception {
+        Wizard wizard = this.wizards.get(0);
+        Artifact artifact = this.artifacts.get(0);
+        // Given
+        // Mock tbe behavior of the service method's assignArtifact
+        doThrow(new ObjectNotFoundException("artifact", "1250808601744904199")).when(this.wizardService).assignArtifact(wizard.getId(), "1250808601744904199");
+
+
+        // Note: The client doesn't send any json in the request body.
+        this.mockMvc.perform(put(String.format("%s/wizards/%s/artifacts/%s", this.baseUrl, wizard.getId(), "1250808601744904199"))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.flag").value(false))
+                .andExpect(jsonPath("$.code").value(StatusCode.NOT_FOUND.getHttpStatusCodeValue()))
+                .andExpect(jsonPath("$.message").value(String.format("Could not find artifact with Id %s :(", "1250808601744904199")))
                 .andExpect(jsonPath("$.data").isEmpty());
     }
 }

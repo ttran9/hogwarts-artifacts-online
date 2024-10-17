@@ -1,6 +1,7 @@
 package edu.tcu.cs.hogwartsartifactsonline.wizard;
 
 import edu.tcu.cs.hogwartsartifactsonline.artifact.Artifact;
+import edu.tcu.cs.hogwartsartifactsonline.artifact.ArtifactRepository;
 import edu.tcu.cs.hogwartsartifactsonline.artifact.utils.IdWorker;
 import edu.tcu.cs.hogwartsartifactsonline.system.exception.ObjectNotFoundException;
 import org.junit.jupiter.api.AfterEach;
@@ -38,8 +39,12 @@ class WizardServiceTest {
     @Mock
     IdWorker idWorker;
 
+    // Since WizardService depends on ArtifactRepository we need to mock this behavior
+    @Mock
+    ArtifactRepository artifactRepository;
+
     /**
-     * Inject the wizardRepository mock into the wizardService object.
+     * Inject the wizardRepository mock and artifactRepository mock into the wizardService object.
      */
     @InjectMocks
     WizardService wizardService;
@@ -267,6 +272,131 @@ class WizardServiceTest {
 
         // Then
         verify(wizardRepository, times(1)).findById(9);
+    }
+
+    @Test
+    void testAssignArtifactSuccess() {
+        // Given
+        // prepare fake data. fake artifact and wizards.
+
+        Artifact artifact = new Artifact();
+        Artifact oldArifact = this.artifacts.get(1);
+        artifact.setId(oldArifact.getId());
+        artifact.setName(oldArifact.getName());
+        artifact.setDescription(oldArifact.getDescription());
+        artifact.setImageUrl(oldArifact.getImageUrl());
+
+
+        Wizard w2 = new Wizard();
+        Wizard oldw2Wizard = this.wizards.get(1);
+        w2.setId(oldw2Wizard.getId());
+        w2.setName(oldw2Wizard.getName());
+        w2.addArtifact(artifact);
+
+        Wizard w3 = new Wizard();
+        Wizard oldw3Wizard = this.wizards.get(2);
+        w3.setId(oldw3Wizard.getId());
+        w3.setName(oldw3Wizard.getName());
+
+        // define behavior of the mock objects.
+        // mock the behavior of artifactRepository's findById method.
+        given(this.artifactRepository.findById(artifact.getId())).willReturn(Optional.of(artifact));
+        // mock the behavior of wizardRepository's findById
+        given(this.wizardRepository.findById(w3.getId())).willReturn(Optional.of(w3));
+
+        // When
+        // the find methods below should work as both exist.
+        this.wizardService.assignArtifact(w3.getId(), artifact.getId());
+
+        // Then
+        /*
+         * before the assignArtifact the Invisiblity cloak belongs to Harry Potter and Neville doesn't have anything in his artifactList
+         * after assignArtifact the invisiblity cloak belongs to Neville and he should have one item in his artifactList.
+         */
+        assertThat(artifact.getOwner().getId()).isEqualTo(w3.getId());
+        assertThat(w3.getArtifacts()).contains(artifact);
+    }
+
+    @Test
+    void testAssignArtifactErrorWithNonExistentWizardId() {
+        // Given
+        // prepare fake data. fake artifact and wizards.
+
+        Artifact artifact = new Artifact();
+        Artifact oldArifact = this.artifacts.get(1);
+        artifact.setId(oldArifact.getId());
+        artifact.setName(oldArifact.getName());
+        artifact.setDescription(oldArifact.getDescription());
+        artifact.setImageUrl(oldArifact.getImageUrl());
+
+
+        Wizard w2 = new Wizard();
+        Wizard oldw2Wizard = this.wizards.get(1);
+        w2.setId(oldw2Wizard.getId());
+        w2.setName(oldw2Wizard.getName());
+        w2.addArtifact(artifact);
+
+        // define behavior of the mock objects.
+        // mock the behavior of artifactRepository's findById method.
+        given(this.artifactRepository.findById(artifact.getId())).willReturn(Optional.of(artifact));
+        // mock the behavior of wizardRepository's findById
+        given(this.wizardRepository.findById(3)).willReturn(Optional.empty());
+
+        // When
+        // the find methods below should work as both exist.
+        Throwable thrown = assertThrows(ObjectNotFoundException.class, () -> {
+            this.wizardService.assignArtifact(3, artifact.getId());
+        });
+
+        // Then
+        assertThat(thrown)
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessage("Could not find wizard with Id 3 :(");
+        assertThat(artifact.getOwner().getId()).isEqualTo(w2.getId());
+    }
+
+    @Test
+    void testAssignArtifactErrorWithNonExistentArtifactId() {
+        // Given
+        // prepare fake data. fake artifact and wizards.
+
+        Artifact artifact = new Artifact();
+        Artifact oldArifact = this.artifacts.get(1);
+        artifact.setId(oldArifact.getId());
+        artifact.setName(oldArifact.getName());
+        artifact.setDescription(oldArifact.getDescription());
+        artifact.setImageUrl(oldArifact.getImageUrl());
+
+
+        Wizard w2 = new Wizard();
+        Wizard oldw2Wizard = this.wizards.get(1);
+        w2.setId(oldw2Wizard.getId());
+        w2.setName(oldw2Wizard.getName());
+        w2.addArtifact(artifact);
+
+        Wizard w3 = new Wizard();
+        Wizard oldw3Wizard = this.wizards.get(2);
+        w3.setId(oldw3Wizard.getId());
+        w3.setName(oldw3Wizard.getName());
+
+        given(this.artifactRepository.findById(artifact.getId())).willReturn(Optional.empty());
+        // mock the behavior of wizardRepository's findById
+        // we do not mock the wizardRepository's findById call as we will throw an exception when looking for the artifact above.
+
+        // define behavior of the mock objects.
+        // mock the behavior of artifactRepository's findById method.
+        Throwable thrown = assertThrows(ObjectNotFoundException.class, () -> {
+            this.wizardService.assignArtifact(w3.getId(), artifact.getId());
+        });
+
+//
+//        // When
+//        this.wizardService.assignArtifact(w3.getId(), artifact.getId());
+
+        // Then
+        assertThat(thrown)
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessage(String.format("Could not find artifact with Id %s :(", artifact.getId()));
     }
 
 }
