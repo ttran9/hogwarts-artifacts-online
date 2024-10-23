@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * For @AutoConfigureMockMvc: have spring autowire this so we can make mock http requests.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class WizardControllerTest {
 
     /**

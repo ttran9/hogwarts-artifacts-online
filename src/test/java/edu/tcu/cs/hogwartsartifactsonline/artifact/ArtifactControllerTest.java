@@ -2,31 +2,24 @@ package edu.tcu.cs.hogwartsartifactsonline.artifact;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.tcu.cs.hogwartsartifactsonline.artifact.dto.ArtifactDto;
-import edu.tcu.cs.hogwartsartifactsonline.system.Result;
 import edu.tcu.cs.hogwartsartifactsonline.system.StatusCode;
 import edu.tcu.cs.hogwartsartifactsonline.system.exception.ObjectNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
@@ -37,9 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * With the annotations, once we start the below test then spring boot autoconfigures
  * the mockMVC object, so we can use it inside of this test class.
+ * We add the "addFilters" option to the @AutoConfigureMockMvc annotation because Spring Security's Servlet support
+ * is based on Servlet Filters. This will essentially turn off Spring Security.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class ArtifactControllerTest {
 
     @Autowired
