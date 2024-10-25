@@ -3,8 +3,6 @@ WORKDIR application
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} application.jar
 RUN java -Djarmode=layertools -jar application.jar extract
-RUN java -Djarmode=tools -jar application.jar extract --layers --launcher
-
 
 FROM eclipse-temurin:17-jre
 WORKDIR application
