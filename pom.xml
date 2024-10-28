@@ -92,6 +92,20 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <!-- Prevent test cases errors during Maven building in CI. Note: With Spring Boot 3.3.4 I didn't need this but leaving this plugin here.-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- By default reuseForks is true. This means that maven surefire plugin creates only 1 new JVM process to execute all tasks in one maven module to speed up the process. -->
+                    <!-- In our case, we turn off reuseForks so maven surefire will execute each test class in its own JVM process one after another. -->
+                    <!-- By creating more JVMs this will case our tests to take more time but it creates the highest level of separation for the test execution.  -->
+                    <reuseForks>false</reuseForks>
+                    <!-- Define the maximum number of JVM processes that maven surefire will spawn concurrently to execute the tests. -->
+                    <forkCount>1</forkCount>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 
